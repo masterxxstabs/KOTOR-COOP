@@ -1620,7 +1620,9 @@ dependencies = [
  "ed25519-dalek",
  "eframe",
  "hex",
+ "kotor-client",
  "kotor-protocol",
+ "kotor-re",
  "rand",
  "serde",
  "serde_json",
@@ -1654,6 +1656,15 @@ dependencies = [
  "postcard",
  "serde",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "kotor-re"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.21",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

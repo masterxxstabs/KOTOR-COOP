@@ -1,7 +1,7 @@
 //! `GameBridge` for the real Odyssey engine, driven entirely by offsets.toml.
 
 use super::mem;
-use crate::config::{BuildOffsets, PointerPath};
+use crate::config::{BuildOffsets, PointerPath, ValueType};
 use crate::coop::{GameBridge, GlobalKind};
 use kotor_protocol::*;
 
@@ -68,6 +68,18 @@ impl OdysseyBridge {
         mem::read(mem::resolve(path.as_ref()?)?)
     }
 
+    /// Reads an integer honouring the path's `as <type>` suffix.
+    fn read_int(path: &Option<PointerPath>, default: ValueType) -> Option<i64> {
+        let p = path.as_ref()?;
+        let addr = mem::resolve(p)?;
+        Some(match p.ty.unwrap_or(default) {
+            ValueType::I16 => mem::read::<i16>(addr)? as i64,
+            ValueType::U16 => mem::read::<u16>(addr)? as i64,
+            ValueType::I32 => mem::read::<i32>(addr)? as i64,
+            ValueType::U8 => mem::read::<u8>(addr)? as i64,
+        })
+    }
+
     fn function(path: &Option<PointerPath>) -> Option<usize> {
         mem::resolve(path.as_ref()?).filter(|&a| a != 0)
     }
@@ -101,9 +113,9 @@ impl GameBridge for OdysseyBridge {
             position,
             facing: Self::read_at(&self.facing).unwrap_or(0.0),
             animation: 0,
-            hp: Self::read_at(&self.hp).unwrap_or(0),
-            max_hp: Self::read_at(&self.max_hp).unwrap_or(0),
-            appearance: Self::read_at(&self.appearance).unwrap_or(0),
+            hp: Self::read_int(&self.hp, ValueType::I32).unwrap_or(0) as i32,
+            max_hp: Self::read_int(&self.max_hp, ValueType::I32).unwrap_or(0) as i32,
+            appearance: Self::read_int(&self.appearance, ValueType::U16).unwrap_or(0) as u16,
             in_combat: false,
             in_dialog: false,
         })

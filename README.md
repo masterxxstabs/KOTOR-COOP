@@ -16,6 +16,7 @@ servers and starts the game with the mod loaded.
 | Master server | `crates/master` | Public server browser list (servers announce themselves) and HTTP host for mod updates. |
 | Launcher | `crates/launcher` | GUI + CLI. Finds KOTOR (Steam/GOG), installs signed mod updates and game patches (with backup/restore of original files), browses/pings servers, direct connect with password, and starts the game with the co-op DLL injected. |
 | Client DLL | `crates/client` | `kotor_coop.dll`, loaded into `swkotor.exe`. Connects to the server, syncs state each frame, draws an in-game overlay (party list, chat; F8 to talk). |
+| RE toolkit | `crates/re` | Reads KOTOR's GFF/ERF formats and saves; scans a running `swkotor.exe` for values and pointer paths (behind `kotor-launcher probe`). |
 | Protocol | `crates/protocol` | Versioned wire format shared by all of the above. |
 | Test bot | `crates/testclient` | Headless fake players for testing servers without the game. |
 
@@ -39,7 +40,7 @@ new DLL.
 | Launcher, updates, patches, server browser | Working |
 | Dedicated persistent server, accounts, autosave, admin console | Working |
 | Injection, frame hook, overlay, chat | Implemented, not yet tested in-game |
-| Position sync / area detection | Code done; needs pointer paths in offsets.toml |
+| Position sync / area detection | Code done. Run `kotor-launcher probe` on your PC to map it automatically (needs real-game testing) |
 | Plot/quest global sync | Code done; needs function addresses in offsets.toml |
 | Seeing other players (puppet creatures) | Needs engine RE (spawn/move creature) |
 | Party travel together | Server + client logic done; needs engine RE (module load). Until then the overlay tells players where the party went. |
@@ -47,7 +48,8 @@ new DLL.
 | Combat/dialog sync | Protocol messages exist; engine side not started |
 
 See [docs/REVERSE_ENGINEERING.md](docs/REVERSE_ENGINEERING.md) for exactly
-what to find and how.
+what to find and how. The first step is automated: `kotor-launcher probe`
+finds the area and player addresses using your own quicksaves.
 
 ## Quick start
 

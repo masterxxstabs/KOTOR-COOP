@@ -89,11 +89,29 @@ pub struct TrackedGlobal {
 }
 
 impl OffsetsFile {
+    /// Loads the shipped `offsets.toml` plus `offsets.local.toml` if present.
+    /// The local file is written by `kotor-launcher probe` and never touched by
+    /// the updater; its builds take precedence over the shipped ones.
     pub fn load(dir: &Path) -> Result<OffsetsFile, String> {
-        let path = dir.join("offsets.toml");
-        let text =
-            std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        Self::parse(&text).map_err(|e| format!("{}: {e}", path.display()))
+        let read = |name: &str| -> Result<Option<OffsetsFile>, String> {
+            let path = dir.join(name);
+            match std::fs::read_to_string(&path) {
+                Ok(text) => Self::parse(&text)
+                    .map(Some)
+                    .map_err(|e| format!("{}: {e}", path.display())),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+                Err(e) => Err(format!("{}: {e}", path.display())),
+            }
+        };
+        let shipped = read("offsets.toml")?.unwrap_or_default();
+        Ok(match read("offsets.local.toml")? {
+            Some(mut local) => {
+                local.build.extend(shipped.build);
+                local.tracked_globals.extend(shipped.tracked_globals);
+                local
+            }
+            None => shipped,
+        })
     }
 
     pub fn parse(text: &str) -> Result<OffsetsFile, toml::de::Error> {
@@ -107,6 +125,15 @@ impl OffsetsFile {
     }
 }
 
+/// Width/encoding of the value a pointer path points at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ValueType {
+    I16,
+    U16,
+    I32,
+    U8,
+}
+
 /// Parsed form of a pointer path string.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PointerPath {
@@ -115,15 +142,31 @@ pub struct PointerPath {
     pub base: u32,
     /// Each entry: dereference the current address, then add the offset.
     pub offsets: Vec<u32>,
+    /// From an optional `as i16` suffix; None = the field's default type.
+    pub ty: Option<ValueType>,
 }
 
 impl PointerPath {
-    /// Parses `"module.exe+0x1234, 0x10, 0x8"` or `"0x7A39FC, 0x4"`.
+    /// Parses `"module.exe+0x1234, 0x10, 0x8"`, `"0x7A39FC, 0x4"` or either
+    /// with a type suffix such as `"... , 0x1A0 as i16"`.
     pub fn parse(s: &str) -> Option<PointerPath> {
         let s = s.trim();
         if s.is_empty() {
             return None;
         }
+        let (s, ty) = match s.rsplit_once(" as ") {
+            Some((path, ty)) => (
+                path.trim(),
+                Some(match ty.trim() {
+                    "i16" => ValueType::I16,
+                    "u16" => ValueType::U16,
+                    "i32" => ValueType::I32,
+                    "u8" => ValueType::U8,
+                    _ => return None,
+                }),
+            ),
+            None => (s, None),
+        };
         let mut parts = s.split(',').map(str::trim);
         let head = parts.next()?;
         let (module, base) = match head.split_once('+') {
@@ -135,6 +178,7 @@ impl PointerPath {
             module,
             base,
             offsets,
+            ty,
         })
     }
 }
@@ -158,7 +202,8 @@ mod tests {
             Some(PointerPath {
                 module: Some("swkotor.exe".into()),
                 base: 0x3A39FC,
-                offsets: vec![4, 0x90]
+                offsets: vec![4, 0x90],
+                ty: None,
             })
         );
         assert_eq!(
@@ -166,11 +211,49 @@ mod tests {
             Some(PointerPath {
                 module: None,
                 base: 0x7A39FC,
-                offsets: vec![]
+                offsets: vec![],
+                ty: None,
             })
         );
+        let typed = PointerPath::parse("swkotor.exe+0x100, 0xC, 0x1A0 as i16").unwrap();
+        assert_eq!(typed.ty, Some(ValueType::I16));
+        assert_eq!(typed.offsets, vec![0xC, 0x1A0]);
+        assert_eq!(PointerPath::parse("0x10 as f64"), None);
         assert_eq!(PointerPath::parse(""), None);
         assert_eq!(PointerPath::parse("swkotor.exe+zz"), None);
+    }
+
+    #[test]
+    fn local_offsets_take_precedence() {
+        let dir = std::env::temp_dir().join(format!("kotor-offsets-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("offsets.toml"),
+            "[[build]]\nname = \"shipped\"\nsha256 = [\"AA\"]\n",
+        )
+        .unwrap();
+        assert_eq!(
+            OffsetsFile::load(&dir)
+                .unwrap()
+                .for_build("aa")
+                .unwrap()
+                .name,
+            "shipped"
+        );
+        std::fs::write(
+            dir.join("offsets.local.toml"),
+            "[[build]]\nname = \"probed\"\nsha256 = [\"aa\"]\n",
+        )
+        .unwrap();
+        assert_eq!(
+            OffsetsFile::load(&dir)
+                .unwrap()
+                .for_build("AA")
+                .unwrap()
+                .name,
+            "probed"
+        );
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

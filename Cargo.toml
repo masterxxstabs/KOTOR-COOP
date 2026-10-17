@@ -7,6 +7,7 @@ members = [
     "crates/launcher",
     "crates/client",
     "crates/testclient",
+    "crates/re",
 ]
 
 [workspace.package]
@@ -17,6 +18,7 @@ repository = "https://github.com/masterxxstabs/kotor-coop"
 
 [workspace.dependencies]
 kotor-protocol = { path = "crates/protocol" }
+kotor-re = { path = "crates/re" }
 anyhow = "1"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }

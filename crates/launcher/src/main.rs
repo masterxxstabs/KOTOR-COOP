@@ -5,6 +5,7 @@
 
 mod game;
 mod gui;
+mod probe;
 mod servers;
 mod settings;
 mod update;
@@ -47,6 +48,24 @@ enum Cmd {
         #[arg(long)]
         game: Option<PathBuf>,
     },
+    /// Map your game's memory layout (run while KOTOR is running; see docs/REVERSE_ENGINEERING.md).
+    Probe {
+        #[command(subcommand)]
+        action: Option<ProbeCmd>,
+        #[arg(long)]
+        game: Option<PathBuf>,
+        /// Use this save folder instead of the newest one.
+        #[arg(long)]
+        save: Option<PathBuf>,
+    },
+    /// Print what a save folder says about the player (newest save by default).
+    DumpSave {
+        dir: Option<PathBuf>,
+        #[arg(long)]
+        game: Option<PathBuf>,
+    },
+    /// Print any GFF file (.res, .ifo, .utc, ...) as text.
+    DumpGff { file: PathBuf },
     /// (Release tooling) Build an update folder from a release tree.
     MakeRelease {
         /// Folder laid out like the game folder (e.g. dist/).
@@ -66,6 +85,14 @@ enum Cmd {
         #[arg(long, default_value = "update-signing.key")]
         out: PathBuf,
     },
+}
+
+#[derive(Subcommand)]
+enum ProbeCmd {
+    /// Show candidates found so far and the offsets they would produce.
+    Status,
+    /// Forget all probe data and start over.
+    Reset,
 }
 
 fn game_dir(settings: &Settings, explicit: Option<PathBuf>) -> anyhow::Result<PathBuf> {
@@ -166,6 +193,23 @@ fn main() -> anyhow::Result<()> {
             game::launch(&g)?;
             println!("game started; joining {server}");
         }
+        Cmd::Probe { action, game, save } => {
+            let g = game_dir(&settings, game)?;
+            match action {
+                None => probe::run(&g, save)?,
+                Some(ProbeCmd::Status) => probe::status(&g)?,
+                Some(ProbeCmd::Reset) => probe::reset(&g)?,
+            }
+        }
+        Cmd::DumpSave { dir, game } => {
+            let g = if dir.is_none() {
+                Some(game_dir(&settings, game)?)
+            } else {
+                None
+            };
+            probe::dump_save(g.as_deref(), dir)?;
+        }
+        Cmd::DumpGff { file } => probe::dump_gff(&file)?,
         Cmd::MakeRelease {
             from,
             out,
