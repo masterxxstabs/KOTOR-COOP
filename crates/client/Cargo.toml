@@ -1,0 +1,33 @@
+[package]
+name = "kotor-client"
+description = "In-game co-op DLL injected into swkotor.exe"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "kotor_coop"
+# cdylib = the DLL loaded into the game; rlib = lets the core be unit-tested on any OS.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+kotor-protocol.workspace = true
+serde.workspace = true
+toml.workspace = true
+sha2.workspace = true
+hex.workspace = true
+
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.61"
+features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_OpenGL",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+]

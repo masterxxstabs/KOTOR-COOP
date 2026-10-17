@@ -1,0 +1,39 @@
+# KOTOR Co-op: memory layout per build of swkotor.exe.
+#
+# This file ships through the launcher's updater, so new or corrected offsets
+# reach every player without a new DLL. The client hashes swkotor.exe at
+# startup and uses the [[build]] whose sha256 list contains that hash.
+#
+# Pointer paths use Cheat Engine notation:
+#   "swkotor.exe+0x3A39FC, 0x4, 0x90"
+#   = read pointer at base+0x3A39FC, add 0x4, read pointer, add 0x90 -> value
+#
+# An empty string means "not mapped yet": the matching feature is disabled and
+# the overlay says so. NOTHING below is filled in yet. See
+# docs/REVERSE_ENGINEERING.md for how to find each value. Never guess: a
+# wrong address reads garbage, and a wrong function address crashes the game.
+
+[[build]]
+name = "Steam / GOG 1.03 (unmapped)"
+# Fill in with: kotor-launcher detect  (prints the hash of your swkotor.exe)
+sha256 = []
+player_position = ""
+player_facing = ""
+player_hp = ""
+player_max_hp = ""
+player_appearance = ""
+module_name = ""
+loading_flag = ""
+
+[build.functions]
+globals_table = ""
+set_global_boolean = ""
+set_global_number = ""
+get_global_boolean = ""
+get_global_number = ""
+
+# Plot globals to poll and keep in sync. The game's globalcat.2da lists every
+# global in K1 with its type; copy the ones that drive quests here, e.g.
+#   [[tracked_globals]]
+#   name = "SOME_GLOBAL"
+#   kind = "number"     # or "boolean"

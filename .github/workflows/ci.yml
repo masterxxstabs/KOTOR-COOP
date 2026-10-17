@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+
+  windows-build:
+    # KOTOR is 32-bit: the client DLL and launcher must be i686.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-pc-windows-gnu
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-i686
+      - run: cargo build --release --target i686-pc-windows-gnu -p kotor-client -p kotor-launcher -p kotor-server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kotor-coop-windows
+          path: |
+            target/i686-pc-windows-gnu/release/kotor_coop.dll
+            target/i686-pc-windows-gnu/release/kotor-launcher.exe
+            target/i686-pc-windows-gnu/release/kotor-server.exe
+            dist/kotor-coop/offsets.toml

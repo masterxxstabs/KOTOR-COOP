@@ -1,0 +1,23 @@
+# systemd unit for a bare-metal/VPS install.
+#   sudo cp target/release/kotor-server /usr/local/bin/
+#   sudo useradd --system --create-home --home-dir /var/lib/kotor-coop kotor
+#   sudo cp deploy/kotor-server.service /etc/systemd/system/
+#   sudo systemctl enable --now kotor-server
+#   journalctl -u kotor-server -f
+[Unit]
+Description=KOTOR Co-op dedicated server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=kotor
+WorkingDirectory=/var/lib/kotor-coop
+ExecStart=/usr/local/bin/kotor-server --config /var/lib/kotor-coop/server.toml --no-console
+Restart=always
+RestartSec=5
+# SIGTERM makes the server notify players and save before exiting.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

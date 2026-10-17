@@ -1,0 +1,11 @@
+[package]
+name = "kotor-protocol"
+description = "Wire protocol shared by the KOTOR co-op server, client DLL and tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+postcard.workspace = true
+thiserror.workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "kotor-testclient"
+description = "Headless bot that joins a KOTOR Co-op server; for testing without the game"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kotor-protocol.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+rand.workspace = true
+
+[dev-dependencies]
+kotor-server = { path = "../server" }
+tokio.workspace = true

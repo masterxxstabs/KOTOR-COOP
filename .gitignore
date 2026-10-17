@@ -1,0 +1,5 @@
+/target
+/dist/out
+*.log
+/server-data
+.DS_Store
